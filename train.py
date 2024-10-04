@@ -22,6 +22,7 @@ from tqdm import tqdm
 from utils.image_utils import psnr
 from argparse import ArgumentParser, Namespace
 from arguments import ModelParams, PipelineParams, OptimizationParams
+import cv2
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
@@ -30,6 +31,7 @@ except ImportError:
 
 def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from):
     first_iter = 0
+    print("dataset details : ",dataset.source_path, dataset.images, dataset.eval)   
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset.sh_degree)
     scene = Scene(dataset, gaussians)
@@ -86,7 +88,16 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg)
         image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
 
+        cv2_render_image = image.clone().permute(1, 2, 0).cpu().detach().numpy()
+        cv2_render_image = cv2.cvtColor(cv2_render_image, cv2.COLOR_RGB2BGR)
+
+
         # Loss
+        cv2_gt_image= viewpoint_cam.original_image.permute(1, 2, 0).cpu().detach().numpy()
+        cv2_gt_image = cv2.cvtColor(cv2_gt_image, cv2.COLOR_RGB2BGR)
+        cv2.imshow("RenderedImage : ",cv2_render_image)
+        cv2.imshow("GroundTruth : ",cv2_gt_image)
+        cv2.waitKey(1)
         gt_image = viewpoint_cam.original_image.cuda()
         Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
@@ -207,6 +218,10 @@ if __name__ == "__main__":
     parser.add_argument("--start_checkpoint", type=str, default = None)
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)
+
+
+    cv2.namedWindow("RenderedImage : ",cv2.WINDOW_AUTOSIZE)
+    cv2.namedWindow("GroundTruth : ",cv2.WINDOW_AUTOSIZE)
     
     print("Optimizing " + args.model_path)
 
