@@ -95,6 +95,7 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
             assert False, "Colmap camera model not handled: only undistorted datasets (PINHOLE or SIMPLE_PINHOLE cameras) supported!"
 
         image_path = os.path.join(images_folder, os.path.basename(extr.name))
+        print("Reading image : ", image_path)
         image_name = os.path.basename(image_path).split(".")[0]
         image = Image.open(image_path)
 
