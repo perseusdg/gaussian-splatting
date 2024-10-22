@@ -47,6 +47,7 @@ class GaussianModel:
         print("Init")
         
         if(half_enabled):
+            print("Float 16 enabled")
             torch.set_default_dtype(torch.float16)
             self.dtype = torch.half
         else:
